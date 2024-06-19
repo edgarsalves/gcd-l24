@@ -1,0 +1,7 @@
+config {
+  type: "assertion"
+}
+
+SELECT trip_id
+FROM ${ref("enriched", "reviews_sentiment_analysis")}
+WHERE sentiment_classification IS NULL
