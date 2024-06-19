@@ -1,0 +1,20 @@
+config { 
+  type: "operations",
+
+  dependencies: ["schemas"],
+  tags: ["setup"]
+}
+
+--create biglake table
+CREATE OR REPLACE EXTERNAL TABLE `${constants.VARS.TABLE_SOURCE_REVIEWS_AUDIOS}`
+  WITH CONNECTION `${constants.VARS.PROJECT_ID}.${constants.VARS.REGION}.${constants.VARS.LLM_CONNECTION}`
+  OPTIONS (
+    object_metadata="DIRECTORY",
+    uris = ['${constants.VARS.GCS_URI_SOURCE_REVIEWS_AUDIOS}'],
+    max_staleness=INTERVAL 30 MINUTE, 
+    --metadata_cache_mode="AUTOMATIC"
+    -- set to Manual for demo
+    metadata_cache_mode="MANUAL"
+    );
+
+CALL BQ.REFRESH_EXTERNAL_METADATA_CACHE('${constants.VARS.TABLE_SOURCE_REVIEWS_AUDIOS}');
