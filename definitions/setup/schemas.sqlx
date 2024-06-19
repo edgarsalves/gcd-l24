@@ -1,0 +1,42 @@
+config { 
+  type: "operations",
+
+  dependencies: ["reset"],
+  tags: ["setup"]
+}
+
+CREATE SCHEMA IF NOT EXISTS source${constants.VARS.DATASET_SUFFIX}
+  OPTIONS (
+    description = 'Dataset to store the source objects',
+    location = '${constants.VARS.REGION}'
+  );
+
+CREATE SCHEMA IF NOT EXISTS llm${constants.VARS.DATASET_SUFFIX}
+  OPTIONS (
+    description = 'Dataset to store the llm objects',
+    location = '${constants.VARS.REGION}'
+  );
+
+CREATE SCHEMA IF NOT EXISTS raw${constants.VARS.DATASET_SUFFIX}
+  OPTIONS (
+    description = 'This is the initial stage where data is ingested in its raw form from various sources',
+    location = '${constants.VARS.REGION}'
+  );
+
+CREATE SCHEMA IF NOT EXISTS enriched${constants.VARS.DATASET_SUFFIX}
+  OPTIONS (
+    description = 'This stage involves refining the raw data to make it more usable and consistent',
+    location = '${constants.VARS.REGION}'
+  );
+
+CREATE SCHEMA IF NOT EXISTS curated${constants.VARS.DATASET_SUFFIX}
+  OPTIONS (
+    description = 'This is the final stage where data is curated for specific business use cases',
+    location = '${constants.VARS.REGION}'
+  );
+
+CREATE SCHEMA IF NOT EXISTS test${constants.VARS.DATASET_SUFFIX}
+  OPTIONS (
+    description = 'Dataset to for testing purposes',
+    location = '${constants.VARS.REGION}'
+  );
