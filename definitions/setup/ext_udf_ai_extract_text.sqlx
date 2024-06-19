@@ -1,0 +1,15 @@
+config { 
+  type: "operations",
+  
+  dependencies: ["schemas"],
+  tags: ["setup"]
+}
+
+-- create the function link between bigquery and the cloud function
+CREATE OR REPLACE FUNCTION `${constants.VARS.EXT_UDF_AI_EXTRACT_TEXT}` (uri STRING) RETURNS STRING 
+  REMOTE WITH CONNECTION `${constants.VARS.PROJECT_ID}.${constants.VARS.REGION}.${constants.VARS.LLM_CONNECTION}`
+  OPTIONS 
+    (endpoint = '${constants.VARS.EXT_CLOUD_FUNCTION_ENDPOINT}', 
+    user_defined_context = [("mode","${constants.VARS.EXT_CLOUD_FUNCTION_AI_EXTRACT_TEXT}")],
+    max_batching_rows = 10
+);

@@ -1,0 +1,28 @@
+config { 
+  type: "operations",
+  
+  dependencies: "schemas",
+  tags: ["setup"]
+}
+
+------------------------------------------------------------------------------------------------------------
+-- Create link to the LLM
+------------------------------------------------------------------------------------------------------------
+/* Old syntax
+CREATE OR REPLACE MODEL ${constants.VARS.LLM_MODEL}
+  REMOTE WITH CONNECTION ${constants.VARS.LLM_CONNECTION}
+  OPTIONS (REMOTE_SERVICE_TYPE = 'CLOUD_AI_LARGE_LANGUAGE_MODEL_V1');
+*/
+
+-- New Syntax for specifying a model version text-bison@001 or text-bison@002 for latest or text-bison-32k@latest
+CREATE OR REPLACE MODEL `${constants.VARS.PROJECT_ID}.${constants.VARS.LLM_MODEL_BISON}`
+  REMOTE WITH CONNECTION `${constants.VARS.PROJECT_ID}.${constants.VARS.REGION}.${constants.VARS.LLM_CONNECTION}`
+  OPTIONS (endpoint = 'text-bison@002');
+
+-- New Syntax for specifying a model version gemini
+CREATE OR REPLACE MODEL `${constants.VARS.PROJECT_ID}.${constants.VARS.LLM_MODEL_GEMINI}`
+  REMOTE WITH CONNECTION `${constants.VARS.PROJECT_ID}.${constants.VARS.REGION}.${constants.VARS.LLM_CONNECTION}`
+  OPTIONS (endpoint = 'gemini-1.5-flash-preview-0514');
+
+
+

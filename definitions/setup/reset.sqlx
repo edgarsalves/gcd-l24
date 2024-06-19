@@ -1,0 +1,13 @@
+config { 
+  type: "operations",
+  
+  tags: ["setup"],
+  disabled: true
+}
+
+DROP SCHEMA IF EXISTS source${constants.VARS.DATASET_SUFFIX} CASCADE;
+DROP SCHEMA IF EXISTS raw${constants.VARS.DATASET_SUFFIX} CASCADE;
+DROP SCHEMA IF EXISTS enriched${constants.VARS.DATASET_SUFFIX} CASCADE;
+DROP SCHEMA IF EXISTS curated${constants.VARS.DATASET_SUFFIX} CASCADE;
+DROP SCHEMA IF EXISTS llm${constants.VARS.DATASET_SUFFIX} CASCADE;
+DROP SCHEMA IF EXISTS test${constants.VARS.DATASET_SUFFIX} CASCADE;
