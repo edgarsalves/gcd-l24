@@ -1,0 +1,32 @@
+config { 
+  type: "incremental",
+  schema: "raw",
+  name: "reviews_text",
+  uniqueKey: ["trip_id"],
+
+  dependencies: ["source_reviews_audios", "ext_udf_ai_extract_text"],
+  tags: ["etl"],
+  
+  assertions: {
+    uniqueKey: ["trip_id"]
+  }
+}
+
+WITH t AS (
+  SELECT * 
+  FROM (
+    SELECT *
+        ,SAFE_CAST(REGEXP_EXTRACT(uri, r'text_synth_(\d+)\.mp3') AS INT64) AS trip_id
+    FROM EXTERNAL_OBJECT_TRANSFORM (TABLE ${constants.VARS.TABLE_SOURCE_REVIEWS_AUDIOS}, ['SIGNED_URL'])
+    -- avoid empty files and large files that might exceed the 60 seconds limit of the speech to text recognition api
+    WHERE size > 0 AND size < 100000
+  )
+  ${when(incremental(), `WHERE trip_id > COALESCE((SELECT MAX(trip_id) FROM ${self()}), 0)`)}
+  ORDER BY trip_id
+  -- 50 records at a time to avoid exceeding Cloud Speech-to-Text API quotas
+  LIMIT 50
+)
+SELECT *
+  ,${constants.VARS.EXT_UDF_AI_EXTRACT_TEXT}(signed_url) AS customer_review_text
+  ,CURRENT_TIMESTAMP() as updated_at
+FROM t

@@ -1,0 +1,55 @@
+config { 
+  type: "table",
+  schema: "enriched",
+  name: "reviews_sentiment_analysis",
+
+  dependencies: ["llm_models"],
+  tags: ["etl"]
+}
+
+WITH t_prompt AS (
+  SELECT * EXCEPT(prompt, ml_generate_text_result, ml_generate_text_status, updated_at)
+    ,CONCAT ("For the given review classify the sentiment as Positive, Neutral or Negative.",
+      "\n Return a json object with keys 'classification' as a json value and 'reasons' as a json array. Avoid markdown format. Here is the output structure:",
+      "\n {\"classification\": \"\",\"reasons\": []}",
+      "\n input: The driver was able to make some small talk, but he didn\'t go overboard. I liked that he was friendly and chatty, but he also knew when to leave me alone. The trunk fit my belongings, and the car was clean and comfortable. Overall, it was a good ride.",
+      "\n output: {\"classification\": \"Positive\",",
+      "\n \"reasons\": [",
+      "\n \"Trunk fit my belongings\",",
+      "\n \"Friendly\",",
+      "\n \"Chatty\"",
+      "\n ]}",
+      "\n input: I took a rideshare last night and it was an okay experience. The car was adequately clean, but it was a bit warm for my liking. The driver was able to make some small talk, but I wasn\'t really in the mood to talk. Overall, it was a fine ride.",
+      "\n output: {\"classification\": \"Neutral\",",
+      "\n \"reasons\": [",
+      "\n \"Clean\",",
+      "\n \"A bit warm\",",
+      "\n \"Fun ride\"",
+      "\n ]}",
+      "\n input: ", customer_review_text_transcript,
+      "\n output: "
+    ) AS prompt
+  FROM ${ref("enriched","reviews_text_transcript")}
+)
+SELECT *
+  ,JSON_VALUE(ml_generate_text_llm_result_json.classification) as sentiment_classification
+  ,JSON_EXTRACT_STRING_ARRAY(ml_generate_text_llm_result_json, '$.reasons') as sentiment_reasons
+  ,CURRENT_TIMESTAMP() as updated_at
+FROM (
+  SELECT * EXCEPT(ml_generate_text_rai_result, ml_generate_text_llm_result, ml_generate_text_status)
+    ,ml_generate_text_status
+    ,ml_generate_text_rai_result
+    ,ml_generate_text_llm_result
+    ,SAFE.PARSE_JSON(ml_generate_text_llm_result) as ml_generate_text_llm_result_json
+  FROM ML.GENERATE_TEXT(
+    MODEL `${constants.VARS.PROJECT_ID}.${constants.VARS.LLM_MODEL_BISON}`
+    ,(SELECT * FROM t_prompt)
+    ,STRUCT(
+      200 AS max_output_tokens,
+      0.5 AS temperature,
+      40 AS top_k,
+      1.0 AS top_p,
+      TRUE AS flatten_json_output
+    )
+  )
+)

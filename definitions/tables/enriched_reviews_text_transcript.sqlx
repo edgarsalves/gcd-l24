@@ -1,0 +1,30 @@
+config { 
+  type: "table",
+  schema: "enriched",
+  name: "reviews_text_transcript",
+
+  dependencies: ["llm_models"],
+  tags: ["etl"]
+}
+
+SELECT * EXCEPT(updated_at, ml_generate_text_result, ml_generate_text_status)
+  ,ml_generate_text_status
+  ,ml_generate_text_result
+  ,JSON_VALUE(ml_generate_text_result, '$.predictions[0].content') AS customer_review_text_transcript
+  ,CURRENT_TIMESTAMP() as updated_at
+FROM ML.GENERATE_TEXT(
+  MODEL `${constants.VARS.PROJECT_ID}.${constants.VARS.LLM_MODEL_BISON}`
+  ,(SELECT *
+      ,CONCAT('The following phrase is a customer review for a rideshare company. ',
+        'Fix grammar and punctuation in the phrase. ',
+        'Correct any words that might be out of context (e.g. ride chair should be rideshare). ', 
+        'Phrase: ', customer_review_text) as prompt
+    FROM ${ref("raw","reviews_text")}
+  )
+  ,STRUCT(
+    1  AS temperature,
+    512 AS max_output_tokens,
+    0  AS top_p,
+    1  AS top_k
+  )
+)
