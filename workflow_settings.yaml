@@ -1,4 +1,5 @@
 defaultProject: gcd-l24-1
+datasetSuffix: ""
 defaultLocation: EU
 defaultDataset: dataform
 defaultAssertionDataset: dataform_assertions
