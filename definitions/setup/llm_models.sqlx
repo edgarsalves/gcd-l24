@@ -22,7 +22,7 @@ CREATE OR REPLACE MODEL `${constants.VARS.PROJECT_ID}.${constants.VARS.LLM_MODEL
 -- New Syntax for specifying a model version gemini
 CREATE OR REPLACE MODEL `${constants.VARS.PROJECT_ID}.${constants.VARS.LLM_MODEL_GEMINI}`
   REMOTE WITH CONNECTION `${constants.VARS.PROJECT_ID}.${constants.VARS.REGION}.${constants.VARS.LLM_CONNECTION}`
-  OPTIONS (endpoint = 'gemini-1.5-flash-preview-0514');
+  OPTIONS (endpoint = 'gemini-1.5-flash-001');
 
 
 
