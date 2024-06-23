@@ -1,0 +1,25 @@
+config { 
+  type: "table",
+  schema: "curated",
+  name: "evaluation_results",
+
+  tags: ["etl"]
+}
+
+SELECT 
+  ea.trip_id,
+  abs(ea.friendly-sa.sentiment_friendly) AS error_friendly, 
+  abs(ea.communication-sa.sentiment_communication) AS error_communication, 
+  abs(ea.safe-sa.sentiment_safe) AS error_safe, 
+  abs(ea.comfortable-sa.sentiment_comfortable) AS error_comfortable, 
+  abs(ea.temperature-sa.sentiment_temperature) AS error_temperature, 
+  abs(ea.recommend-sa.sentiment_recommend) AS error_recommend, 
+  abs(ea.speed-sa.sentiment_speed) AS error_speed, 
+  abs(ea.clean-sa.sentiment_clean) AS error_clean, 
+  abs(ea.size-sa.sentiment_size) AS error_size, 
+  abs(ea.professional-sa.sentiment_professional) AS error_professional, 
+  sa.customer_review_text_transcript
+FROM ${ref("llm","prompt_eval_expected_answers")} AS ea 
+INNER JOIN ${ref("enriched","reviews_sentiment_analysis")} AS sa 
+    ON ea.trip_id = sa.trip_id
+

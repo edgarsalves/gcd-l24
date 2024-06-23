@@ -8,31 +8,115 @@ config {
 }
 
 WITH t_prompt AS (
-  SELECT * EXCEPT(prompt, ml_generate_text_result, ml_generate_text_status, updated_at)
-    ,CONCAT ("For the given review classify the sentiment as Positive, Neutral or Negative.",
-      "\n Return a json object with keys 'classification' as a json value and 'reasons' as a json array. Avoid markdown format. Here is the output structure:",
-      "\n {\"classification\": \"\",\"reasons\": []}",
-      "\n input: The driver was able to make some small talk, but he didn\'t go overboard. I liked that he was friendly and chatty, but he also knew when to leave me alone. The trunk fit my belongings, and the car was clean and comfortable. Overall, it was a good ride.",
-      "\n output: {\"classification\": \"Positive\",",
-      "\n \"reasons\": [",
-      "\n \"Trunk fit my belongings\",",
-      "\n \"Friendly\",",
-      "\n \"Chatty\"",
-      "\n ]}",
-      "\n input: I took a rideshare last night and it was an okay experience. The car was adequately clean, but it was a bit warm for my liking. The driver was able to make some small talk, but I wasn\'t really in the mood to talk. Overall, it was a fine ride.",
-      "\n output: {\"classification\": \"Neutral\",",
-      "\n \"reasons\": [",
-      "\n \"Clean\",",
-      "\n \"A bit warm\",",
-      "\n \"Fun ride\"",
-      "\n ]}",
-      "\n input: ", customer_review_text_transcript,
-      "\n output: "
-    ) AS prompt
+  SELECT * EXCEPT(prompt, ml_generate_text_result, ml_generate_text_status, updated_at),CONCAT("""
+# CONTEXT
+
+You are an expert at assessing customer feedback from rideshare customers. You love to classify real world feedback and have a knack for identifying the underlying reasons for the feedback.
+Your task is to create a json string with the following keys:
+
+- `classification`, string, overall classification of the feedback. Must be "Positive", "Neutral" or "Negative".
+- `reasons`, string array, list of reasons from the feedback that support the classification, each reason must be concise and precise, using no more than 5 words.
+- `friendly`, integer, 1 if driver was friendly or helpful or attentive to customer needs, -1 if the opposite was mentioned, else 0.
+- `communication`, integer, 1 if customer was satisfied with the amount and quality of the communication from the driver, -1 if the opposite was mentioned, else 0.
+- `safe`, integer, 1 if driver drove safely or the customer felt safe during the trip, -1 if the opposite was mentioned, else 0.
+- `comfortable`, integer, 1 if car was comfortable, great, or in some way exceeded the customers expectations, -1 if the opposite was mentioned, else 0.
+- `temperature`, integer, 1 if car's temperature was ok, -1 if the opposite was mentioned, else 0.
+- `recommend`, integer, 1 if customer would recommend, -1 if the opposite was mentioned, else 0.
+- `speed`, integer, -1 if customer was unhappy that the driver drove too fast, too slow or chose a path with too much traffic, 1 if the opposite was mentioned, else 0.
+- `clean`, integer, -1 if the car or the driver are dirty, smelly or there is trash laying around, 1 if the opposite was mentioned, else 0.
+- `size`, integer, -1 if the passenger felt like there wasn't enough space or their stuff didn't fit or were crammed, 1 if the opposite was mentioned, else 0.
+- `professional`, integer, -1 if driver was rude, annoyed, annoying, frustrating, distracted, angry or disrespectful, 1 if the opposite was mentioned, else 0.
+
+
+# EXAMPLE 1
+
+## INPUT
+The driver was able to make some small talk, but he didn't go overboard. I liked that he was friendly and chatty, but he also knew when to leave me alone. The trunk fit my belongings, and the car was clean and comfortable. Overall, it was a good ride.
+
+## OUTPUT
+{
+  "classification": "Positive", 
+  "reasons": ["Trunk was adequate", "Driver was friendly", "Driver was emphatic", "Car was clean", "Car was comfortable"],
+  "friendly": 1,
+  "communication": 1,
+  "safe": 0,
+  "comfortable": 1,
+  "temperature": 0,
+  "recommend": 0,
+  "speed": 0,
+  "clean": 1,
+  "size": 1,
+  "professional" : 1
+}
+
+
+# EXAMPLE 2
+
+## INPUT
+I took a rideshare last night and it was an okay experience. The car was adequately clean, but it was a bit warm for my liking. The driver was able to make some small talk but I had some trouble understanding him and wasn't really in the mood to talk. Overall, it was a fine ride.
+
+## OUTPUT
+{
+  "classification": "Neutral", 
+  "reasons": ["Car was clean", "Temperature was too hot", "Driver was not communicative", "Customer was satisfied" ],
+  "friendly": 0,
+  "communication": 0,
+  "safe": 0,
+  "comfortable": 0,
+  "temperature": -1,
+  "recommend": 0,
+  "speed": 0,
+  "clean": 1,
+  "size": 0,
+  "professional" : 0
+}
+
+
+# EXAMPLE 3
+
+## INPUT
+The driver seemed to ignore me, even though I wanted to talk. I took this rideshare to get to a meeting. I was excited to meet the people I was going to be working with, and I was looking forward to talking to them on the ride there. When I got in the car, I tried to start a conversation with the driver, but he just ignored me. He didn't say anything and didn't even look at me. I tried to talk to him a few more times, but he still just ignored me. I was really disappointed. I felt like I was in a taxi, not a rideshare. I didn't feel like I was getting the personal experience that I was expecting from a rideshare. When I got to my meeting, I was really late. I was so frustrated that I had wasted my time trying to talk to the driver. I would not recommend this rideshare to anyone.
+
+## OUTPUT
+{
+  "classification": "Negative", 
+  "reasons": ["Driver was not communicative", "Driver ignored the customer", "Customer would not recommend", "Customer was late" ],
+  "friendly": -1,
+  "communication": -1,
+  "safe": 0,
+  "comfortable": 0,
+  "temperature": 0,
+  "recommend": -1,
+  "speed": -1,
+  "clean": 0,
+  "size": 0,
+  "professional" : 0
+}
+
+
+# INSTRUCTIONS
+
+Create a json string for the given INPUT below. DO NOT OUTPUT ``` CODE BLOCKS. OUTPUT ONLY THE JSON STRING. OUTPUT ONLY THE JSON STRING.
+
+## INPUT
+""" , customer_review_text_transcript,"""
+
+## OUTPUT
+""") AS prompt
   FROM ${ref("enriched","reviews_text_transcript")}
 )
 SELECT *
   ,JSON_VALUE(ml_generate_text_llm_result_json.classification) as sentiment_classification
+  ,CAST(JSON_VALUE(ml_generate_text_llm_result_json.friendly) as INT) as sentiment_friendly
+  ,CAST(JSON_VALUE(ml_generate_text_llm_result_json.communication) as INT) as sentiment_communication
+  ,CAST(JSON_VALUE(ml_generate_text_llm_result_json.safe) as INT) as sentiment_safe
+  ,CAST(JSON_VALUE(ml_generate_text_llm_result_json.comfortable) as INT) as sentiment_comfortable
+  ,CAST(JSON_VALUE(ml_generate_text_llm_result_json.temperature) as INT) as sentiment_temperature
+  ,CAST(JSON_VALUE(ml_generate_text_llm_result_json.recommend) as INT) as sentiment_recommend
+  ,CAST(JSON_VALUE(ml_generate_text_llm_result_json.speed) as INT) as sentiment_speed
+  ,CAST(JSON_VALUE(ml_generate_text_llm_result_json.clean) as INT) as sentiment_clean
+  ,CAST(JSON_VALUE(ml_generate_text_llm_result_json.size) as INT) as sentiment_size
+  ,CAST(JSON_VALUE(ml_generate_text_llm_result_json.professional) as INT) as sentiment_professional
   ,JSON_EXTRACT_STRING_ARRAY(ml_generate_text_llm_result_json, '$.reasons') as sentiment_reasons
   ,CURRENT_TIMESTAMP() as updated_at
 FROM (
@@ -44,12 +128,6 @@ FROM (
   FROM ML.GENERATE_TEXT(
     MODEL `${constants.VARS.PROJECT_ID}.${constants.VARS.LLM_MODEL_BISON}`
     ,(SELECT * FROM t_prompt)
-    ,STRUCT(
-      200 AS max_output_tokens,
-      0.5 AS temperature,
-      40 AS top_k,
-      1.0 AS top_p,
-      TRUE AS flatten_json_output
-    )
+    ,STRUCT(200 AS max_output_tokens, 0.0 AS temperature, 5 AS top_k, 0.25 AS top_p, TRUE AS flatten_json_output)
   )
 )

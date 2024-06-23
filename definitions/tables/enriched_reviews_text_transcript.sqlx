@@ -7,6 +7,17 @@ config {
   tags: ["etl"]
 }
 
+WITH reviews AS (
+  SELECT *
+    ,ROW_NUMBER() OVER (PARTITION BY trip_id ORDER BY updated_at DESC) AS row_num
+  FROM (
+    SELECT * FROM ${ref("raw","reviews_text")}
+    UNION ALL
+    --TODO
+    SELECT * FROM ${ref("raw","reviews_text_static_sample")}
+  ) t
+  QUALIFY row_num = 1
+)
 SELECT * EXCEPT(updated_at, ml_generate_text_result, ml_generate_text_status)
   ,ml_generate_text_status
   ,ml_generate_text_result
@@ -19,7 +30,7 @@ FROM ML.GENERATE_TEXT(
         'Fix grammar and punctuation in the phrase. ',
         'Correct any words that might be out of context (e.g. ride chair should be rideshare). ', 
         'Phrase: ', customer_review_text) as prompt
-    FROM ${ref("raw","reviews_text")}
+    FROM reviews
   )
   ,STRUCT(
     1  AS temperature,
