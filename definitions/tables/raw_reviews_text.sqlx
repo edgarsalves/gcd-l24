@@ -5,7 +5,7 @@ config {
   uniqueKey: ["trip_id"],
 
   dependencies: ["source_reviews_audios", "ext_udf_ai_extract_text"],
-  tags: ["etl"],
+  tags: ["etl","etl_raw"],
   
   assertions: {
     uniqueKey: ["trip_id"]
