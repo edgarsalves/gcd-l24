@@ -1,5 +1,0 @@
-config {
-    type: "declaration",
-    schema: "raw",
-    name: "reviews_text_static_sample",
-}

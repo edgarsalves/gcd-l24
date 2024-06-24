@@ -20,9 +20,6 @@ WITH t AS (
     FROM EXTERNAL_OBJECT_TRANSFORM (TABLE ${constants.VARS.TABLE_SOURCE_REVIEWS_AUDIOS}, ['SIGNED_URL'])
     -- avoid empty files and large files that might exceed the 60 seconds limit of the speech to text recognition api
     WHERE size > 0 AND size < 100000
-    
-    --TODO
-    --AND SAFE_CAST(REGEXP_EXTRACT(uri, r'text_synth_(\d+)\.mp3') AS INT64) in (SELECT trip_id from `test-gcd-dataform-v1.llm.prompt_eval_expected_answers`)
   )
   ${when(incremental(), `WHERE trip_id > COALESCE((SELECT MAX(trip_id) FROM ${self()}), 0)`)}
   ORDER BY trip_id
